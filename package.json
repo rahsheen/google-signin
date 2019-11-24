@@ -16,7 +16,9 @@
     "lint": "tsdx lint"
   },
   "peerDependencies": {
-    "react": ">=16"
+    "react": ">=16",
+    "react-native": ">=0.59",
+    "react-native-google-signin": ">=2.1"
   },
   "husky": {
     "hooks": {
