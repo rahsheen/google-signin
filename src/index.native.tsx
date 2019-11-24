@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { Alert } from "react-native";
+import React, { useState, useEffect } from 'react';
+import { Alert } from 'react-native';
 
 import {
   GoogleSignin,
   GoogleSigninButton,
-  statusCodes
-} from "react-native-google-signin";
+  statusCodes,
+} from 'react-native-google-signin';
 
 export function useGoogleSignIn(config: object) {
   const { isSignedIn, getCurrentUser, getTokens } = GoogleSignin;
-  const [tokens, setTokens] = useState({ accessToken: "", idToken: "" });
+  const [tokens, setTokens] = useState({ accessToken: '', idToken: '' });
 
   const [userInfo, setUserInfo] = useState();
   const [error, setError] = useState<Error | null>();
@@ -31,14 +31,14 @@ export function useGoogleSignIn(config: object) {
     } catch (error) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         // sign in was cancelled
-        Alert.alert("cancelled");
+        Alert.alert('cancelled');
       } else if (error.code === statusCodes.IN_PROGRESS) {
         // operation in progress already
-        Alert.alert("in progress");
+        Alert.alert('in progress');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert("Google Play services not available or outdated");
+        Alert.alert('Google Play services not available or outdated');
       } else {
-        Alert.alert("Something went wrong", error.toString());
+        Alert.alert('Something went wrong', error.toString());
         setError(error);
       }
     } finally {
@@ -97,6 +97,6 @@ export function useGoogleSignIn(config: object) {
     loading,
     signOut,
     Button,
-    error
+    error,
   };
 }

@@ -12,7 +12,7 @@ export function useGoogleSignIn(config: object) {
     (window as any).gapi.load('auth2', () => {
       (window as any).gapi.auth2.init(config).then(setGoogleAuth);
     });
-  }
+  };
 
   useEffect(() => {
     getGoogleAuth();
