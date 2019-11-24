@@ -8,14 +8,10 @@ export function useGoogleSignIn(config: object) {
   const [error, setError] = useState<Error | null>();
   const [loading, setLoading] = useState(true);
 
-  const getGoogleAuth = () => {
+  useEffect(() => {
     (window as any).gapi.load('auth2', () => {
       (window as any).gapi.auth2.init(config).then(setGoogleAuth);
     });
-  };
-
-  useEffect(() => {
-    getGoogleAuth();
   }, [config]);
 
   useEffect(() => {
