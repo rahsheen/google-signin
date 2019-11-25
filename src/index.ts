@@ -1,36 +1,68 @@
 import { useState, useEffect } from 'react';
 
-export function useGoogleSignIn(config: object) {
-  const [googleAuth, setGoogleAuth] = useState();
+const platformSelect = (native: object, web: object) =>
+  typeof navigator != 'undefined' && navigator.product == 'ReactNative'
+    ? native
+    : web;
+
+export function useGoogleSignIn(config: object, GoogleSignIn: any) {
+  const [googleAuth, setGoogleAuth] = useState<any>({});
   // const [tokens, setTokens] = useState({ accessToken: '', idToken: '' });
 
   const [userInfo, setUserInfo] = useState();
   const [error, setError] = useState<Error | null>();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  const gapiInit = () => {
+    (window as any).gapi.load('auth2', () => {
+      (window as any).gapi.auth2.init(config).then((googleAuth: any) => {
+        setGoogleAuth(googleAuth);
+
+        if (googleAuth.isSignedIn.get())
+          setUserInfo(googleAuth.currentUser.get());
+      });
+    });
+  };
 
   useEffect(() => {
-    (window as any).gapi.load('auth2', () => {
-      (window as any).gapi.auth2.init(config).then(setGoogleAuth);
-    });
+    const init = platformSelect(
+      () => GoogleSignIn.configure(config),
+      gapiInit
+    ) as Function;
+    init();
   }, [config]);
 
-  useEffect(() => {
-    if (!googleAuth) return;
+  const signedIn = async (): Promise<boolean> => {
+    let bool = platformSelect(GoogleSignIn.isSignedIn, () =>
+      googleAuth.isSignedIn.get()
+    ) as Function;
+    return bool();
+  };
 
-    if (googleAuth.isSignedIn.get()) {
-      setUserInfo(googleAuth.currentUser.get());
-    }
-  }, [googleAuth]);
+  const _signIn = async () => {
+    const si = platformSelect(
+      GoogleSignIn.signIn,
+      googleAuth && googleAuth.signIn
+    ) as Function;
+    return si();
+  };
+  const _currentUser = async () => {
+    const curUser = platformSelect(GoogleSignIn.getCurrentUser, () =>
+      googleAuth.currentUser().get()
+    ) as Function;
+    return curUser();
+  };
 
   const signIn = async () => {
     setLoading(true);
 
     try {
       let newUserInfo;
-      if (!googleAuth.isSignedIn.get()) {
-        newUserInfo = await googleAuth.signIn();
+      let alreadySignedIn = await signedIn();
+      if (!alreadySignedIn) {
+        newUserInfo = await _signIn();
       } else {
-        newUserInfo = googleAuth.currentUser().get();
+        newUserInfo = await _currentUser();
       }
       setUserInfo(newUserInfo);
       setError(null);
@@ -52,16 +84,6 @@ export function useGoogleSignIn(config: object) {
       setError(error);
     }
   };
-
-  //   const Button = (props: any) => (
-  //     <GoogleSigninButton
-  //       style={{ width: 212, height: 48 }}
-  //       size={GoogleSigninButton.Size.Standard}
-  //       color={GoogleSigninButton.Color.Auto}
-  //       onPress={_signIn}
-  //       {...props}
-  //     />
-  //   );
 
   return {
     // tokens,
