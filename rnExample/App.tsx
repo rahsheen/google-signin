@@ -6,6 +6,8 @@ import {
   View,
   Text,
   StatusBar,
+  Button,
+  ActivityIndicator
 } from 'react-native';
 
 import {
@@ -16,17 +18,24 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 
+import {GoogleSignin} from 'react-native-google-signin';
 import config from './googleSigninConfig';
-import { useGoogleSignIn } from '@rahsheen/google-signin';
+import {useGoogleSignIn} from '@rahsheen/google-signin';
 
 const App = () => {
-  const usingHermes = typeof HermesInternal === 'object' && HermesInternal !== null;
-  const {
-    userInfo,
-    error,
-    signIn,
-    signOut
-  } = useGoogleSignIn(config)
+  const usingHermes =
+    typeof HermesInternal === 'object' && HermesInternal !== null;
+
+  const {userInfo, error, signIn, signOut, loading} = useGoogleSignIn(
+    config,
+    GoogleSignin,
+  );
+
+  console.log(`Loading? ${loading}`)
+  console.log(`UserInfo?`, userInfo)
+  if(error) {
+    console.log(error)
+  }
 
   return (
     <>
@@ -42,32 +51,11 @@ const App = () => {
             </View>
           )}
           <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
+            {loading ? (
+              <ActivityIndicator />
+            ) : (
+              <Button title="sign in" onPress={signIn} />
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
