@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 
-const platformSelect = (native: object, web: object) =>
+const platformSelect = (native: any, web: any) =>
   typeof navigator != 'undefined' && navigator.product == 'ReactNative'
     ? native
     : web;
 
-export function useGoogleSignIn(config: object, GoogleSignIn: any) {
-  const [googleAuth, setGoogleAuth] = useState<any>({});
+export function useGoogleSignIn(
+  config: any,
+  GoogleSignIn: any
+) {
+  const [googleAuth, setGoogleAuth] = useState<gapi.auth2.GoogleAuth|GoogleSignin>();
   // const [tokens, setTokens] = useState({ accessToken: '', idToken: '' });
 
   const [userInfo, setUserInfo] = useState();
@@ -33,8 +36,9 @@ export function useGoogleSignIn(config: object, GoogleSignIn: any) {
   }, [config]);
 
   const signedIn = async (): Promise<boolean> => {
-    let bool = platformSelect(GoogleSignIn.isSignedIn, () =>
-      googleAuth.isSignedIn.get()
+    let bool = platformSelect(
+      GoogleSignIn.isSignedIn,
+      () => googleAuth && googleAuth.isSignedIn.get()
     ) as Function;
     return bool();
   };
@@ -44,11 +48,13 @@ export function useGoogleSignIn(config: object, GoogleSignIn: any) {
       GoogleSignIn.signIn,
       googleAuth && googleAuth.signIn
     ) as Function;
-    return si();
+    return si;
   };
+
   const _currentUser = async () => {
-    const curUser = platformSelect(GoogleSignIn.getCurrentUser, () =>
-      googleAuth.currentUser().get()
+    const curUser = platformSelect(
+      GoogleSignIn.getCurrentUser,
+      () => googleAuth && googleAuth.currentUser.get()
     ) as Function;
     return curUser();
   };
@@ -60,10 +66,13 @@ export function useGoogleSignIn(config: object, GoogleSignIn: any) {
       let newUserInfo;
       let alreadySignedIn = await signedIn();
       if (!alreadySignedIn) {
+        console.log('Signing in!');
         newUserInfo = await _signIn();
       } else {
+        console.log('Already In');
         newUserInfo = await _currentUser();
       }
+      console.log(`Got userInfo`, newUserInfo);
       setUserInfo(newUserInfo);
       setError(null);
     } catch (error) {
@@ -75,8 +84,10 @@ export function useGoogleSignIn(config: object, GoogleSignIn: any) {
 
   const signOut = async () => {
     try {
-      await googleAuth.disconnect();
-      await googleAuth.signOut();
+      if (googleAuth) {
+        await googleAuth.disconnect();
+        await googleAuth.signOut();
+      }
 
       setError(null);
       setUserInfo(null);
@@ -91,7 +102,6 @@ export function useGoogleSignIn(config: object, GoogleSignIn: any) {
     loading,
     signOut,
     signIn,
-    // Button,
     error,
   };
 }

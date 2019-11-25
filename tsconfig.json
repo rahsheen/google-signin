@@ -1,6 +1,7 @@
 {
   "include": ["src", "types", "test"],
   "compilerOptions": {
+    "types": ["gapi", "gapi.auth2"],
     "target": "es5",
     "module": "esnext",
     "lib": ["dom", "esnext"],
@@ -25,6 +26,6 @@
       "*": ["src/*", "node_modules/*"]
     },
     "jsx": "react",
-    "esModuleInterop": true
+    "esModuleInterop": true    
   }
 }
