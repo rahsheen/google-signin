@@ -7,7 +7,7 @@ import config from './googleSigninConfig';
 const App = () => {
   const { userInfo, error, signIn, signOut, loading } = useGoogleSignIn(config);
 
-  console.log(error)
+  if (error) console.log(error);
 
   if (userInfo)
     return (
