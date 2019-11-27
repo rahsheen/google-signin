@@ -1,6 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+//@ts-ignore
+import { loadScript } from './load-script';
 
 type GoogleUser = User | gapi.auth2.GoogleUser | void;
+
+interface GoogleAuthInstance {
+  signIn: () => Promise<GoogleUser>;
+  signOut: () => Promise<void>;
+  isSignedIn: () => Promise<boolean>;
+  currentUser: () => Promise<GoogleUser>;
+  disconnect: () => Promise<void>;
+}
 
 function platformSelect<T>(native: T, web: T): T {
   return typeof navigator != 'undefined' && navigator.product === 'ReactNative'
@@ -8,8 +18,39 @@ function platformSelect<T>(native: T, web: T): T {
     : web;
 }
 
+function webFactory(webInst: gapi.auth2.GoogleAuth): GoogleAuthInstance {
+  const { signIn, signOut, isSignedIn, currentUser, disconnect } = webInst;
+  return {
+    signIn: signIn.bind(webInst),
+    signOut: signOut.bind(webInst),
+    isSignedIn: () => Promise.resolve(isSignedIn.get()),
+    currentUser: () => Promise.resolve(currentUser.get()),
+    disconnect: disconnect.bind(webInst),
+  };
+}
+
+function nativeFactory(nativeInst: GoogleSignin): GoogleAuthInstance {
+  const {
+    signIn,
+    signOut,
+    isSignedIn,
+    // signInSilently,
+    getCurrentUser: currentUser,
+    revokeAccess: disconnect,
+  } = nativeInst;
+  return {
+    signIn,
+    signOut,
+    isSignedIn,
+    currentUser,
+    disconnect,
+    // currentUser: () => signInSilently(), // TODO: This rejects when not logged in
+  };
+}
+
 export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
-  const [googleAuth, setGoogleAuth] = useState<gapi.auth2.GoogleAuth>();
+  const [googleAuth, setGoogleAuth] = useState<GoogleAuthInstance>();
+  const authRef = useRef<gapi.auth2.GoogleAuth>();
   // const [tokens, setTokens] = useState({ accessToken: '', idToken: '' });
 
   const [userInfo, setUserInfo] = useState<GoogleUser>();
@@ -18,68 +59,70 @@ export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
 
   useEffect(() => {
     const gapiInit = () => {
-      (window as any).gapi.load('auth2', () => {
-        (window as any).gapi.auth2
-          .init(config)
-          .then((googleAuth: gapi.auth2.GoogleAuth) => {
-            setGoogleAuth(googleAuth);
-            console.log('Got GoogleAuth', googleAuth);
-
-            if (googleAuth.isSignedIn.get())
-              setUserInfo(googleAuth.currentUser.get());
+      setLoading(true);
+      loadScript(
+        document,
+        'script',
+        'rahsheen-google-signin',
+        'https://apis.google.com/js/api.js',
+        () => {
+          window.gapi.load('auth2', () => {
+            window.gapi.auth2
+              .init(config)
+              .then((newGoogleAuthInst: gapi.auth2.GoogleAuth) => {
+                setLoading(false);
+                setGoogleAuth(webFactory(newGoogleAuthInst));
+                authRef.current = newGoogleAuthInst;
+              });
           });
-      });
+        }
+      );
     };
-    // TODO: Should actually check if already configured?
-    const init = platformSelect(
-      () => GoogleSignIn && GoogleSignIn.configure(config),
-      gapiInit
+
+    const gsInit = () => {
+      if (!GoogleSignIn) throw new Error('react-native-google-signin missing');
+      GoogleSignIn.configure(config);
+      setGoogleAuth(nativeFactory(GoogleSignIn));
+    };
+
+    // TODO: Maybe should actually check if already configured?
+    platformSelect(gsInit, gapiInit).call(null);
+
+    return platformSelect(
+      () => {},
+      () => {
+        try {
+          const el = document.getElementById('rahsheen-google-signin');
+          el && el.parentNode && el.parentNode.removeChild(el);
+        } catch (error) {
+          // just ignore it; the container is already removed
+        }
+      }
     );
-    init();
   }, [config, GoogleSignIn]);
 
-  const signedIn = async (): Promise<boolean> => {
-    let bool = platformSelect(
-      GoogleSignIn ? GoogleSignIn.isSignedIn : () => Promise.resolve(false),
-      () => Promise.resolve(!!googleAuth && googleAuth.isSignedIn.get())
-    );
-    return bool();
-  };
+  useEffect(() => {
+    if (!googleAuth) return;
 
-  // const _signIn = async () => {
-  //   const si = platformSelect<
-  //     () => Promise<User | gapi.auth2.GoogleUser | void>
-  //   >(
-  //     GoogleSignIn ? GoogleSignIn.signIn : () => Promise.resolve(),
-  //     googleAuth ? googleAuth.signIn : () => Promise.resolve()
-  //   );
-
-  //   const user = si();
-  //   return user;
-  // };
-
-  const _currentUser = async () => {
-    const cu = platformSelect<
-      () => Promise<User | gapi.auth2.GoogleUser | void>
-    >(
-      GoogleSignIn ? GoogleSignIn.signInSilently : () => Promise.resolve(),
-      async () => googleAuth && googleAuth.currentUser.get()
-    );
-    return cu();
-  };
+    googleAuth.isSignedIn().then(isSignedIn => {
+      if (isSignedIn) googleAuth.currentUser().then(setUserInfo);
+    });
+  }, [googleAuth]);
 
   const signIn = async () => {
+    if (!googleAuth) throw new Error('Google signin not initialized');
+
     setLoading(true);
 
     try {
       let newUserInfo: GoogleUser;
-      let alreadySignedIn = await signedIn();
+      let alreadySignedIn = await googleAuth.isSignedIn();
       if (!alreadySignedIn) {
         console.log('Signing in!');
-        newUserInfo = await googleAuth!.signIn();
+        newUserInfo = await googleAuth.signIn();
       } else {
         console.log('Already In');
-        newUserInfo = await _currentUser();
+        newUserInfo = await googleAuth.currentUser();
       }
       console.log(`Got userInfo`, newUserInfo);
       setUserInfo(newUserInfo);
@@ -90,6 +133,16 @@ export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
       setLoading(false);
     }
   };
+
+  // const signIn = () => {
+  //   const go = authRef.current && authRef.current.signIn;
+  //   // googleAuth && googleAuth.signIn();
+  //   console.log(
+  //     authRef.current && authRef.current.signIn,
+  //     googleAuth && googleAuth.signIn
+  //   );
+  //   go && go();
+  // };
 
   const signOut = async () => {
     try {
@@ -202,6 +255,11 @@ export interface GoogleSignin {
    * if not signed in.
    */
   signInSilently(): Promise<User>;
+
+  /**
+   * Returns a Promise that resolves with the current signed in user
+   */
+  getCurrentUser(): Promise<User>;
 
   /**
    * Prompts the user to sign in with their Google account. Resolves with the
