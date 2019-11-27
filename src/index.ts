@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 type GoogleUser = User | gapi.auth2.GoogleUser | void;
 
 function platformSelect<T>(native: T, web: T): T {
-  return typeof navigator != 'undefined' && navigator.product == 'ReactNative'
+  return typeof navigator != 'undefined' && navigator.product === 'ReactNative'
     ? native
     : web;
 }
@@ -16,21 +16,27 @@ export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
   const [error, setError] = useState<Error | null>();
   const [loading, setLoading] = useState(false);
 
-  const gapiInit = () => {
-    (window as any).gapi.load('auth2', () => {
-      (window as any).gapi.auth2.init(config).then((googleAuth: any) => {
-        setGoogleAuth(googleAuth);
-
-        if (googleAuth.isSignedIn.get())
-          setUserInfo(googleAuth.currentUser.get());
-      });
-    });
-  };
-
   useEffect(() => {
-    const init = platformSelect(() => GoogleSignIn && GoogleSignIn.configure(config), gapiInit);
+    const gapiInit = () => {
+      (window as any).gapi.load('auth2', () => {
+        (window as any).gapi.auth2
+          .init(config)
+          .then((googleAuth: gapi.auth2.GoogleAuth) => {
+            setGoogleAuth(googleAuth);
+            console.log('Got GoogleAuth', googleAuth);
+
+            if (googleAuth.isSignedIn.get())
+              setUserInfo(googleAuth.currentUser.get());
+          });
+      });
+    };
+    // TODO: Should actually check if already configured?
+    const init = platformSelect(
+      () => GoogleSignIn && GoogleSignIn.configure(config),
+      gapiInit
+    );
     init();
-  }, [config]);
+  }, [config, GoogleSignIn]);
 
   const signedIn = async (): Promise<boolean> => {
     let bool = platformSelect(
@@ -40,16 +46,22 @@ export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
     return bool();
   };
 
-  const _signIn = () => {
-    const si = platformSelect<() => Promise<User|gapi.auth2.GoogleUser|void>>(
-      GoogleSignIn ? GoogleSignIn.signIn : () => Promise.resolve(),
-      googleAuth ? googleAuth.signIn : () => Promise.resolve()
-    );
-    return si();
-  };
+  // const _signIn = async () => {
+  //   const si = platformSelect<
+  //     () => Promise<User | gapi.auth2.GoogleUser | void>
+  //   >(
+  //     GoogleSignIn ? GoogleSignIn.signIn : () => Promise.resolve(),
+  //     googleAuth ? googleAuth.signIn : () => Promise.resolve()
+  //   );
+
+  //   const user = si();
+  //   return user;
+  // };
 
   const _currentUser = async () => {
-    const cu = platformSelect<() => Promise<User|gapi.auth2.GoogleUser|void>>(
+    const cu = platformSelect<
+      () => Promise<User | gapi.auth2.GoogleUser | void>
+    >(
       GoogleSignIn ? GoogleSignIn.signInSilently : () => Promise.resolve(),
       async () => googleAuth && googleAuth.currentUser.get()
     );
@@ -64,7 +76,7 @@ export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
       let alreadySignedIn = await signedIn();
       if (!alreadySignedIn) {
         console.log('Signing in!');
-        newUserInfo = await _signIn();
+        newUserInfo = await googleAuth!.signIn();
       } else {
         console.log('Already In');
         newUserInfo = await _currentUser();
