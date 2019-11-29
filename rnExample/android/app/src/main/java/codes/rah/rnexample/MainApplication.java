@@ -1,4 +1,4 @@
-package com.rnexample;
+package codes.rah.rnexample;
 
 import android.app.Application;
 import android.content.Context;
