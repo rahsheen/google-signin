@@ -1,62 +1,78 @@
-import React from 'react';
+import React, {FunctionComponent} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
   ScrollView,
   View,
-  Text,
   StatusBar,
   Button,
-  ActivityIndicator
+  ActivityIndicator,
+  Text,
 } from 'react-native';
 
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import {Header} from 'react-native/Libraries/NewAppScreen';
 
 import {GoogleSignin} from 'react-native-google-signin';
 import config from './googleSigninConfig';
-import {useGoogleSignIn} from '@rahsheen/google-signin';
+import {
+  useGoogleSignIn,
+  GoogleAuthUser,
+  AuthTokens,
+} from '@rahsheen/google-signin';
+
+const Error = ({error}: {error: any}) => {
+  if (!error) {
+    return null;
+  }
+  const text = `${error.toString()} ${error.code ? error.code : ''}`;
+  return <Text>{text}</Text>;
+};
+
+interface UserInfoProps {
+  userInfo: GoogleAuthUser;
+  tokens: AuthTokens;
+}
+
+const UserInfo: FunctionComponent<UserInfoProps> = ({userInfo, tokens}) => {
+  return (
+    <View>
+      <Text>Welcome {userInfo.user.name}</Text>
+      <Text>Your user info: {JSON.stringify(userInfo.user)}</Text>
+    </View>
+  );
+};
 
 const App = () => {
-  const usingHermes =
-    typeof HermesInternal === 'object' && HermesInternal !== null;
-
-  const {userInfo, error, signIn, signOut, loading} = useGoogleSignIn(
+  const {userInfo, error, signIn, signOut, loading, tokens} = useGoogleSignIn(
     config,
     GoogleSignin,
   );
-
-  console.log(`Loading? ${loading}`)
-  console.log(`UserInfo?`, userInfo)
-  if(error) {
-    console.log(error)
-  }
 
   return (
     <>
       <StatusBar barStyle="dark-content" />
       <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
+        <ScrollView contentInsetAdjustmentBehavior="automatic">
           <Header />
-          {!usingHermes ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
+          {loading ? (
+            <ActivityIndicator size="large" />
+          ) : (
+            <View>
+              <View style={styles.container}>
+                {userInfo ? (
+                  <View>
+                    <UserInfo userInfo={userInfo} tokens={tokens} />
+                    <Button title="sign out" onPress={signOut} />
+                  </View>
+                ) : (
+                  <View>
+                    <Button title="sign in" onPress={signIn} />
+                  </View>
+                )}
+                <Error error={error} />
+              </View>
             </View>
           )}
-          <View style={styles.body}>
-            {loading ? (
-              <ActivityIndicator />
-            ) : (
-              <Button title="sign in" onPress={signIn} />
-            )}
-          </View>
         </ScrollView>
       </SafeAreaView>
     </>
@@ -64,41 +80,10 @@ const App = () => {
 };
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
-  },
-  engine: {
-    position: 'absolute',
-    right: 0,
-  },
-  body: {
-    backgroundColor: Colors.white,
-  },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
+  container: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5FCFF',
   },
 });
 
