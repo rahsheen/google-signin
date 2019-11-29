@@ -1,4 +1,4 @@
-package com.rnexample;
+package codes.rah.rnexample;
 
 import com.facebook.react.ReactActivity;
 
