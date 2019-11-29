@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "react-native": "0.61.5",
+    "react-native-dotenv": "^0.2.0",
     "react-native-google-signin": "^2.1.1"
   },
   "alias": {

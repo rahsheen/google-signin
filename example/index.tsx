@@ -3,6 +3,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { useGoogleSignIn } from '../.';
 import config from './googleSigninConfig';
+require('dotenv').config();
 
 const App = () => {
   const { userInfo, error, signIn, signOut, loading } = useGoogleSignIn(config);
