@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 //@ts-ignore
 import { loadScript } from './load-script';
 
-type GoogleUser = User | gapi.auth2.GoogleUser | void;
+export type GoogleUser = User | gapi.auth2.GoogleUser | void;
+export type AuthTokens = UserTokens | gapi.auth2.AuthResponse | void;
 
 interface GoogleAuthInstance {
   signIn: () => Promise<GoogleUser>;
@@ -10,6 +11,8 @@ interface GoogleAuthInstance {
   isSignedIn: () => Promise<boolean>;
   currentUser: () => Promise<GoogleUser>;
   disconnect: () => Promise<void>;
+  getTokens: () => Promise<AuthTokens>;
+  // tokens: () => Promise<gapi.auth2.AuthResponse>;
 }
 
 function platformSelect<T>(native: T, web: T): T {
@@ -20,12 +23,15 @@ function platformSelect<T>(native: T, web: T): T {
 
 function webFactory(webInst: gapi.auth2.GoogleAuth): GoogleAuthInstance {
   const { signIn, signOut, isSignedIn, currentUser, disconnect } = webInst;
+
   return {
     signIn: signIn.bind(webInst),
     signOut: signOut.bind(webInst),
     isSignedIn: () => Promise.resolve(isSignedIn.get()),
     currentUser: () => Promise.resolve(currentUser.get()),
     disconnect: disconnect.bind(webInst),
+    getTokens: () =>
+      Promise.resolve(currentUser && currentUser.get().getAuthResponse()),
   };
 }
 
@@ -34,24 +40,31 @@ function nativeFactory(nativeInst: GoogleSignin): GoogleAuthInstance {
     signIn,
     signOut,
     isSignedIn,
-    // signInSilently,
+    hasPlayServices,
     getCurrentUser: currentUser,
     revokeAccess: disconnect,
+    getTokens,
   } = nativeInst;
+
+  const _signIn = async () => {
+    await hasPlayServices({ showPlayServicesUpdateDialog: true });
+    return await signIn();
+  };
+
   return {
-    signIn,
+    signIn: _signIn,
     signOut,
     isSignedIn,
     currentUser,
     disconnect,
-    // currentUser: () => signInSilently(), // TODO: This rejects when not logged in
+    getTokens,
   };
 }
 
 export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
   const [googleAuth, setGoogleAuth] = useState<GoogleAuthInstance>();
   const authRef = useRef<gapi.auth2.GoogleAuth>();
-  // const [tokens, setTokens] = useState({ accessToken: '', idToken: '' });
+  const [tokens, setTokens] = useState<AuthTokens>();
 
   const [userInfo, setUserInfo] = useState<GoogleUser>();
   const [error, setError] = useState<Error | null>();
@@ -85,11 +98,10 @@ export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
       setGoogleAuth(nativeFactory(GoogleSignIn));
     };
 
-    // TODO: Maybe should actually check if already configured?
     platformSelect(gsInit, gapiInit).call(null);
 
     return platformSelect(
-      () => {},
+      () => {}, // No cleanup needed for native
       () => {
         try {
           const el = document.getElementById('rahsheen-google-signin');
@@ -115,34 +127,21 @@ export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
     setLoading(true);
 
     try {
-      let newUserInfo: GoogleUser;
       let alreadySignedIn = await googleAuth.isSignedIn();
-      if (!alreadySignedIn) {
-        console.log('Signing in!');
-        newUserInfo = await googleAuth.signIn();
-      } else {
-        console.log('Already In');
-        newUserInfo = await googleAuth.currentUser();
-      }
-      console.log(`Got userInfo`, newUserInfo);
-      setUserInfo(newUserInfo);
+      const googleUser = !alreadySignedIn
+        ? await googleAuth.signIn()
+        : await googleAuth.currentUser();
+      setUserInfo(googleUser);
+      const newTokens = await googleAuth.getTokens();
+      setTokens(newTokens);
       setError(null);
     } catch (error) {
+      console.error(error);
       setError(error);
     } finally {
       setLoading(false);
     }
   };
-
-  // const signIn = () => {
-  //   const go = authRef.current && authRef.current.signIn;
-  //   // googleAuth && googleAuth.signIn();
-  //   console.log(
-  //     authRef.current && authRef.current.signIn,
-  //     googleAuth && googleAuth.signIn
-  //   );
-  //   go && go();
-  // };
 
   const signOut = async () => {
     try {
@@ -159,7 +158,7 @@ export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
   };
 
   return {
-    // tokens,
+    tokens,
     userInfo,
     loading,
     signOut,
@@ -238,6 +237,11 @@ export interface User {
   serverAuthCode: string | null;
 }
 
+export interface UserTokens {
+  idToken: string;
+  accessToken: string;
+}
+
 export interface GoogleSignin {
   /**
    * Check if the device has Google Play Services installed. Always resolves
@@ -260,6 +264,11 @@ export interface GoogleSignin {
    * Returns a Promise that resolves with the current signed in user
    */
   getCurrentUser(): Promise<User>;
+
+  /**
+   * Returns a Promise that resolves with the current signed in user
+   */
+  getTokens(): Promise<UserTokens>;
 
   /**
    * Prompts the user to sign in with their Google account. Resolves with the
