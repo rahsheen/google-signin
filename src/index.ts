@@ -73,23 +73,17 @@ export function useGoogleSignIn(config: any, GoogleSignIn?: GoogleSignin) {
   useEffect(() => {
     const gapiInit = () => {
       setLoading(true);
-      loadScript(
-        document,
-        'script',
-        'rahsheen-google-signin',
-        'https://apis.google.com/js/api.js',
-        () => {
-          window.gapi.load('auth2', () => {
-            window.gapi.auth2
-              .init(config)
-              .then((newGoogleAuthInst: gapi.auth2.GoogleAuth) => {
-                setLoading(false);
-                setGoogleAuth(webFactory(newGoogleAuthInst));
-                authRef.current = newGoogleAuthInst;
-              });
-          });
-        }
-      );
+      loadScript(() => {
+        window.gapi.load('auth2', () => {
+          window.gapi.auth2
+            .init(config)
+            .then((newGoogleAuthInst: gapi.auth2.GoogleAuth) => {
+              setLoading(false);
+              setGoogleAuth(webFactory(newGoogleAuthInst));
+              authRef.current = newGoogleAuthInst;
+            });
+        });
+      });
     };
 
     const gsInit = () => {
