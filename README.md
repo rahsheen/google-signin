@@ -12,15 +12,17 @@ It also makes the API's consistent between React and React Native to more easily
 
 Built on:
 
-"react": ">=16",
-"react-native": ">=0.59",
-"react-native-google-signin": ">=2.1"
+- "react": ">=16",
+- "react-native": ">=0.59",
+- "react-native-google-signin": ">=2.1"
 
 ### Installing
 
-```
+```bash
 npm install @rahsheen/google-signin
 ```
+
+For react-native, you will (for now) also need to install [react-native-google-signin](https://github.com/react-native-community/react-native-google-signin)
 
 ## Usage
 
@@ -41,12 +43,13 @@ const {userInfo, error, signIn, signOut, loading, tokens} = useGoogleSignIn(
 
 ## Built With
 
-* [React](http://reactjs.org/)
-* [React Native](https://facebook.github.io/react-native/)
+- [React](http://reactjs.org/)
+- [React Native](https://facebook.github.io/react-native/)
+- [Google OAuth2](https://developers.google.com/identity/protocols/OAuth2)
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
+Yes, please!
 
 ## License
 
@@ -54,5 +57,5 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Acknowledgments
 
-* [React Google Login](https://github.com/anthonyjgrove/react-google-login)
-* [React Native Google Signin](https://github.com/react-native-community/react-native-google-signin)
+- [React Google Login](https://github.com/anthonyjgrove/react-google-login)
+- [React Native Google Signin](https://github.com/react-native-community/react-native-google-signin)
