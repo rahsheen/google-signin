@@ -1,12 +1,8 @@
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react-hooks';
 import { useGoogleSignIn } from '../src';
 
 test('should increment counter', () => {
   const { result } = renderHook(() => useGoogleSignIn({}));
 
-  act(() => {
-    result.current.signIn();
-  });
-
-  expect(result.current.userInfo).toBe(1);
+  expect(result.current.signIn).toBeTruthy();
 });
