@@ -9,6 +9,18 @@
   "files": [
     "dist"
   ],
+  "keywords": [
+    "react",
+    "react-component",
+    "react-native",
+    "google signin",
+    "google login",
+    "google api",
+    "oauth",
+    "oauth2",
+    "ios",
+    "android"
+  ],
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build",
